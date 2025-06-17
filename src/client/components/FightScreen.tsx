@@ -13,6 +13,7 @@ const CANVAS_HEIGHT = 400;
 const CHARACTER_SIZE = 40;
 const ATTACK_RANGE = 60;
 const ATTACK_COOLDOWN = 1200; // 1.2 seconds
+const GAME_LOOP_INTERVAL = 16; // ~60fps (16ms)
 
 export const FightScreen: React.FC<FightScreenProps> = ({
   playerCharacter,
@@ -21,7 +22,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
   onFightComplete,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   
   const [gamePhase, setGamePhase] = useState<'countdown' | 'fighting' | 'finished'>('countdown');
@@ -42,7 +43,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
   const generateOpponentPath = useCallback((): PathData => {
     const points: DrawingPoint[] = [];
     const duration = 5000;
-    const numPoints = 20;
+    const numPoints = 50; // More points for smoother movement
     
     for (let i = 0; i <= numPoints; i++) {
       const t = i / numPoints;
@@ -74,7 +75,9 @@ export const FightScreen: React.FC<FightScreenProps> = ({
     }
     
     // Loop the path by using modulo
-    const loopedTime = elapsedTime % Math.max(path.duration, 1000); // Ensure minimum duration
+    const loopedTime = elapsedTime % Math.max(path.duration, 1000);
+    
+    console.log(`Getting position for time: ${elapsedTime}, looped: ${loopedTime}, duration: ${path.duration}`);
     
     // Find the appropriate point based on timestamp
     let targetPoint = path.points[0];
@@ -91,6 +94,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
             x: current.x + (next.x - current.x) * segmentProgress,
             y: current.y + (next.y - current.y) * segmentProgress,
           };
+          console.log(`Interpolated position: (${targetPoint.x}, ${targetPoint.y})`);
           break;
         }
       }
@@ -159,36 +163,36 @@ export const FightScreen: React.FC<FightScreenProps> = ({
     }
   }, [opponentAttackCooldown, currentPlayerPos, currentOpponentPos, checkCollision, onFightComplete]);
 
-  // Animation loop
-  const animate = useCallback((timestamp: number) => {
+  // Game loop using setInterval
+  const gameLoop = useCallback(() => {
+    if (gamePhase !== 'fighting') return;
+    
+    const currentTime = Date.now();
     if (!startTimeRef.current) {
-      startTimeRef.current = timestamp;
+      startTimeRef.current = currentTime;
     }
     
-    const elapsedTime = timestamp - startTimeRef.current;
+    const elapsedTime = currentTime - startTimeRef.current;
     
-    if (gamePhase === 'fighting') {
-      // Update positions based on paths (with looping)
-      const playerPos = getPositionAtTime(playerPath, elapsedTime);
-      const opponentPos = getPositionAtTime(opponentPath, elapsedTime);
-      
-      /*
-      console.log('Player path points:', playerPath.points.length);
-      console.log('Current player position:', playerPos);
-      console.log('Elapsed time:', elapsedTime);
-      */
-      
-      setCurrentPlayerPos(playerPos);
-      setCurrentOpponentPos(opponentPos);
-      
-      // Update cooldowns
-      setPlayerAttackCooldown(prev => Math.max(0, prev - 16));
-      setOpponentAttackCooldown(prev => Math.max(0, prev - 16));
-      
-      // AI attack logic
-      if (Math.random() < 0.02) { // 2% chance per frame
-        handleOpponentAttack();
-      }
+    console.log(`Game loop - elapsed time: ${elapsedTime}ms`);
+    
+    // Update positions based on paths (with looping)
+    const playerPos = getPositionAtTime(playerPath, elapsedTime);
+    const opponentPos = getPositionAtTime(opponentPath, elapsedTime);
+    
+    console.log(`Player position: (${playerPos.x}, ${playerPos.y})`);
+    console.log(`Opponent position: (${opponentPos.x}, ${opponentPos.y})`);
+    
+    setCurrentPlayerPos(playerPos);
+    setCurrentOpponentPos(opponentPos);
+    
+    // Update cooldowns
+    setPlayerAttackCooldown(prev => Math.max(0, prev - GAME_LOOP_INTERVAL));
+    setOpponentAttackCooldown(prev => Math.max(0, prev - GAME_LOOP_INTERVAL));
+    
+    // AI attack logic
+    if (Math.random() < 0.02) { // 2% chance per frame
+      handleOpponentAttack();
     }
     
     // Render
@@ -203,30 +207,28 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       ctx.fillStyle = '#1f2937';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       
-      // Draw path traces (faded) - only show during fighting
-      if (gamePhase === 'fighting') {
-        // Player path - draw the actual path from MakeMoveScreen
-        if (playerPath.points.length > 0) {
-          ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          playerPath.points.forEach((point, i) => {
-            if (i === 0) ctx.moveTo(point.x, point.y);
-            else ctx.lineTo(point.x, point.y);
-          });
-          ctx.stroke();
-        }
-        
-        // Opponent path
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
-        ctx.lineWidth = 2;
+      // Draw path traces (faded)
+      // Player path - draw the actual path from MakeMoveScreen
+      if (playerPath.points.length > 0) {
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        opponentPath.points.forEach((point, i) => {
+        playerPath.points.forEach((point, i) => {
           if (i === 0) ctx.moveTo(point.x, point.y);
           else ctx.lineTo(point.x, point.y);
         });
         ctx.stroke();
       }
+      
+      // Opponent path
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      opponentPath.points.forEach((point, i) => {
+        if (i === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.stroke();
       
       // Draw characters
       const drawCharacter = (pos: DrawingPoint, character: Character, isPlayer: boolean, isAttacking: boolean) => {
@@ -289,12 +291,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
         ctx.restore();
       }
     }
-    
-    if (gamePhase === 'fighting') {
-      
-      animationRef.current = requestAnimationFrame(animate);
-    }
-  }, [gamePhase, currentPlayerPos, currentOpponentPos, playerPath, opponentPath, getPositionAtTime, handleOpponentAttack, playerCharacter, opponentCharacter, showAttackEffect, isPlayerAttacking, isOpponentAttacking]);
+  }, [gamePhase, playerPath, opponentPath, getPositionAtTime, handleOpponentAttack, playerCharacter, opponentCharacter, showAttackEffect, isPlayerAttacking, isOpponentAttacking]);
 
   // Start countdown
   useEffect(() => {
@@ -302,7 +299,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       setCountdown(prev => {
         if (prev <= 1) {
           setGamePhase('fighting');
-          startTimeRef.current = 0;
+          startTimeRef.current = 0; // Reset start time
           return 0;
         }
         return prev - 1;
@@ -312,24 +309,39 @@ export const FightScreen: React.FC<FightScreenProps> = ({
     return () => clearInterval(countdownInterval);
   }, []);
 
-  // Start animation when fighting begins
+  // Start game loop when fighting begins
   useEffect(() => {
     if (gamePhase === 'fighting') {
-      animationRef.current = requestAnimationFrame(animate);
+      console.log('Starting game loop with setInterval');
+      console.log('Player path points:', playerPath.points.length);
+      console.log('Player path duration:', playerPath.duration);
+      
+      gameLoopRef.current = setInterval(gameLoop, GAME_LOOP_INTERVAL);
+    } else {
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
     }
     
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
       }
     };
-  }, [gamePhase, animate]);
+  }, [gamePhase, gameLoop]);
 
   // Debug: Log player path when component mounts
   useEffect(() => {
     console.log('FightScreen received player path:', playerPath);
     console.log('Player path points:', playerPath.points);
     console.log('Player path duration:', playerPath.duration);
+    
+    if (playerPath.points.length > 0) {
+      console.log('First point:', playerPath.points[0]);
+      console.log('Last point:', playerPath.points[playerPath.points.length - 1]);
+    }
   }, [playerPath]);
 
   return (
@@ -393,6 +405,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
         <div className="text-xs text-gray-500 mt-2">
           <p>Player Path Points: {playerPath.points.length}</p>
           <p>Current Position: ({Math.round(currentPlayerPos.x)}, {Math.round(currentPlayerPos.y)})</p>
+          <p>Elapsed Time: {startTimeRef.current ? Date.now() - startTimeRef.current : 0}ms</p>
         </div>
       )}
     </div>
