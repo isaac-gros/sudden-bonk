@@ -14,6 +14,7 @@ export const MakeMoveScreen: React.FC<MakeMoveScreenProps> = ({ onMoveComplete }
   const [drawingPoints, setDrawingPoints] = useState<DrawingPoint[]>([]);
   const [startTime, setStartTime] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timeTracker = useRef<NodeJS.Timeout | null>(null);
 
   const initializeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -97,12 +98,26 @@ export const MakeMoveScreen: React.FC<MakeMoveScreenProps> = ({ onMoveComplete }
             clearInterval(timerRef.current);
             timerRef.current = null;
           }
+          if (timeTracker.current) {
+            clearInterval(timeTracker.current);
+            timeTracker.current = null;
+          }
           finishDrawingSession();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+
+    timeTracker.current = setInterval(() => {
+      if (!isDrawing) {
+        const lastDrawnPoints = drawingPoints[drawingPoints.length - 1];
+        if (lastDrawnPoints) {
+          console.log('Inactive ! Ajout de points');
+          setDrawingPoints([...drawingPoints, { x: lastDrawnPoints.x, y: lastDrawnPoints.y }]);
+        }
+      }
+    }, 10);
   }, [canvasState, finishDrawingSession]);
 
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
