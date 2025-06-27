@@ -11,4 +11,5 @@ export default defineConfig({
     sourcemap: true,
     chunkSizeWarningLimit: 1500,
   },
+  publicDir: 'public'
 });

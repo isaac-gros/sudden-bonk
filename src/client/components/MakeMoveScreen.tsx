@@ -1,13 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { DrawingPoint, PathData } from '../../shared/types/game';
+import csvToDataPoints from '../utils/csvToDataPoints';
 
 interface MakeMoveScreenProps {
-  onMoveComplete: (pathData: PathData) => void;
+  onMoveComplete: (playerPathData: PathData, opponentPathData: PathData) => void;
 }
 
 export const MakeMoveScreen: React.FC<MakeMoveScreenProps> = ({ onMoveComplete }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingPointsRef = useRef<DrawingPoint[]>([]);
+  const opponentPointsRef = useRef<DrawingPoint[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [timeLeft, setTimeLeft] = useState(5);
   const [canvasState, setCanvasState] = useState<'locked' | 'drawing' | 'finished'>('locked');
@@ -53,25 +55,46 @@ export const MakeMoveScreen: React.FC<MakeMoveScreenProps> = ({ onMoveComplete }
     }
   }, [canvasState]);
 
+  const generateOpponentPoints = useCallback(async (): PathData => {
+    const sampleIndexes = [1, 2, 3, 4];
+    const randomIndex = sampleIndexes[Math.floor(Math.random() * sampleIndexes.length)];
+    const dataPoints = await csvToDataPoints(`/data/moves/sample${randomIndex}.csv`);
+    console.log("[MakeMove] Opponent datapoints ready ! ", JSON.stringify(dataPoints).slice(0, 100));
+    opponentPointsRef.current = dataPoints;
+  }, []);
+
+  // On loading
   useEffect(() => {
-    initializeCanvas();
-  }, [initializeCanvas]);
+    generateOpponentPoints();
+  }, [generateOpponentPoints]);
+
+  // When opponent path is ready, init canvas
+  useEffect(() => {
+    if (opponentPointsRef.current.length > 0) {
+      initializeCanvas();
+    }
+  }, [initializeCanvas, opponentPointsRef])
 
   const finishDrawingSession = useCallback(() => {
     console.log('Finishing drawing session with points:', drawingPointsRef.current);
     setCanvasState('finished');
     
     // Create path data using the ref (which has the latest points)
-    const pathData: PathData = {
+    const playerPathData: PathData = {
       points: drawingPointsRef.current,
       duration: 5000, // Always 5 seconds
     };
+
+    const opponentPathData: PathData = {
+      points: opponentPointsRef.current,
+      duration: 5000
+    }
     
-    console.log('Sending path data:', pathData);
+    console.log('Sending path data:', playerPathData, "opponent => ", opponentPathData);
     
     // Redirect after a short delay
     setTimeout(() => {
-      onMoveComplete(pathData);
+      onMoveComplete(playerPathData, opponentPathData);
     }, 1000);
   }, [onMoveComplete]);
 

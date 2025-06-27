@@ -59,6 +59,7 @@ export const Game: React.FC = () => {
     y: 0,
   });
   const [playerPath, setPlayerPath] = useState<PathData>({ points: [], duration: 0 });
+  const [opponentPath, setOpponentPath] = useState<PathData>({ points: [], duration: 0 });
 
   const navigateToScreen = useCallback((screen: Screen) => {
     setCurrentScreen(screen);
@@ -89,9 +90,9 @@ export const Game: React.FC = () => {
     setCurrentScreen('make-move');
   }, []);
 
-  const handleMoveComplete = useCallback((pathData: PathData) => {
-    console.log("OK! ", pathData);
-    setPlayerPath(pathData);
+  const handleMoveComplete = useCallback((playerPathData: PathData, opponentPathData: PathData) => {
+    setPlayerPath(playerPathData);
+    setOpponentPath(opponentPathData);
     setCurrentScreen('fight');
   }, []);
 
@@ -156,6 +157,7 @@ export const Game: React.FC = () => {
           <FightScreen
             playerCharacter={playerCharacter}
             opponentCharacter={opponentCharacter}
+            opponentPath={opponentPath}
             playerPath={playerPath}
             onFightComplete={handleFightComplete}
           />

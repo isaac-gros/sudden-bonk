@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback, Dispatch, SetStateAction } from 'react';
 import { Character, PathData, DrawingPoint } from '../../shared/types/game';
+import csvToDataPoints from '../utils/csvToDataPoints';
 
 interface FightScreenProps {
   playerCharacter: Character;
   opponentCharacter: Character;
   playerPath: PathData;
+  opponentPath: PathData;
   onFightComplete: (won: boolean) => void;
 }
 
@@ -19,6 +21,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
   playerCharacter,
   opponentCharacter,
   playerPath,
+  opponentPath,
   onFightComplete,
 }) => {
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,32 +45,20 @@ export const FightScreen: React.FC<FightScreenProps> = ({
   const [currentOpponentPosIndex, setCurrentOpponentPosIndex] = useState<number>(0);
 
   // Generate opponent path (simple AI movement)
-  const generateOpponentPath = useCallback((): PathData => {
-    const points: DrawingPoint[] = [];
-    const duration = 5000; // Match player path duration
-    const numPoints = 50;
+  // TODO : Pass it as a props
+  // const generateOpponentPath = useCallback(async (): PathData => {
+  //   if (!opponentPathLoaded) {
+  //     const sampleIndexes = [1, 2, 3, 4];
+  //     const randomIndex = sampleIndexes[Math.floor(Math.random() * sampleIndexes.length)];
+  //     const dataPoints = await csvToDataPoints(`/data/moves/sample${randomIndex}.csv`);
+  //     const duration = 5000; // Match player path duration
+  //     setOpponentPathLoaded(true);
     
-    for (let i = 0; i <= numPoints; i++) {
-      const t = i / numPoints;
-      const timestamp = t * duration;
-      
-      // Simple circular movement pattern
-      const centerX = 300;
-      const centerY = 200;
-      const radius = 80;
-      const angle = t * Math.PI * 2;
-      
-      points.push({
-        x: centerX + Math.cos(angle) * radius,
-        y: centerY + Math.sin(angle) * radius,
-        timestamp,
-      });
-    }
-    
-    return { points, duration };
-  }, []);
+  //     setOpponentPath({ points: dataPoints, duration });
+  //   }
+  // }, []);
 
-  const [opponentPath] = useState<PathData>(generateOpponentPath());
+  // const [opponentPath, setOpponentPath] = useState<PathData>(generateOpponentPath());
 
   // Draw paths on canvas (background only)
   const drawPaths = useCallback(() => {
@@ -94,6 +85,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
+      console.log("opponentPath ===> ", opponentPath);
       opponentPath.points.forEach((point, i) => {
         if (i === 0) ctx.moveTo(point.x, point.y);
         else ctx.lineTo(point.x, point.y);
@@ -166,8 +158,11 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       index: number, 
       pathData: PathData, 
       setPosition: Dispatch<SetStateAction<DrawingPoint>>,
-      setIndex: Dispatch<SetStateAction<number>>
+      setIndex: Dispatch<SetStateAction<number>>,
+      entityType: string
   ) => {
+
+    console.log(entityType, ' => ', pathData);
 
     // If index is greater than max path data,
     // reset it
@@ -185,13 +180,14 @@ export const FightScreen: React.FC<FightScreenProps> = ({
     }
   }
   const handlePlayerMove = useCallback(() => {
-    handleEntityMove(currentPlayerPosIndex, playerPath, setCurrentPlayerPos, setCurrentPlayerPosIndex)
+    handleEntityMove(currentPlayerPosIndex, playerPath, setCurrentPlayerPos, setCurrentPlayerPosIndex, 'player')
   }, [currentPlayerPosIndex, playerPath, setCurrentPlayerPos, setCurrentPlayerPosIndex])
   useEffect(handlePlayerMove, [currentPlayerPosIndex, handlePlayerMove]);
 
   
   const handleOpponentMove = useCallback(() => {
-    handleEntityMove(currentOpponentPosIndex, opponentPath, setCurrentOpponentPos, setCurrentOpponentPosIndex)
+    console.log(opponentPath);
+    handleEntityMove(currentOpponentPosIndex, opponentPath, setCurrentOpponentPos, setCurrentOpponentPosIndex, 'opponent')
   }, [currentOpponentPosIndex, opponentPath, setCurrentOpponentPos, setCurrentOpponentPosIndex])
   useEffect(handleOpponentMove, [currentOpponentPosIndex, handleOpponentMove]);
 
@@ -256,10 +252,6 @@ export const FightScreen: React.FC<FightScreenProps> = ({
   // Start game loop when fighting begins
   useEffect(() => {
     if (gamePhase === 'fighting') {
-      console.log('Starting game loop with setInterval');
-      console.log('Player path points:', playerPath.points.length);
-      console.log('Player path duration:', playerPath.duration);
-      
       gameLoopRef.current = setInterval(gameLoop, GAME_LOOP_INTERVAL);
     } else {
       if (gameLoopRef.current) {
@@ -366,7 +358,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
 
           {/* Opponent Character */}
           <div
-            className={`absolute ${
+            className={`absolute transition-all ${
               isOpponentAttacking ? 'scale-125' : 'scale-100'
             }`}
             style={{
