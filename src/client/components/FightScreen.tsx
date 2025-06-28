@@ -162,8 +162,6 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       entityType: string
   ) => {
 
-    console.log(entityType, ' => ', pathData);
-
     // If index is greater than max path data,
     // reset it
     if (index == pathData.points.length) {
