@@ -234,16 +234,16 @@ export const MakeMoveScreen: React.FC<MakeMoveScreenProps> = ({ onMoveComplete }
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-900 via-teal-900 to-black flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden main-background">
       <div className="text-center mb-6">
-        <h1 className="text-4xl font-bold text-white mb-2">MAKE YOUR MOVE</h1>
-        <p className="text-gray-300">Draw your character's movement path</p>
+        <h1 className="text-4xl font-bold text-gray-800 mb-2">MAKE YOUR MOVE</h1>
+        <p className="text-gray-800">Draw your character's movement path</p>
       </div>
 
       {/* Timer - only show when drawing */}
       {canvasState === 'drawing' && (
         <div className="mb-6">
-          <div className={`text-6xl font-bold ${timeLeft <= 2 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
+          <div className={`text-6xl font-bold ${timeLeft <= 2 ? 'text-red-400 animate-pulse' : 'text-gray-800'}`}>
             {timeLeft}
           </div>
           <p className="text-center text-gray-400 mt-2">seconds left</p>
@@ -272,14 +272,14 @@ export const MakeMoveScreen: React.FC<MakeMoveScreenProps> = ({ onMoveComplete }
         />
       </div>
 
-      <div className="text-center text-gray-400">
-        <p className="text-sm">
+      <div className="text-center text-gray-800">
+        <p>
           {canvasState === 'locked' && '🎯 Click the canvas to start drawing your path'}
           {canvasState === 'drawing' && '🎨 Draw your character\'s movement path quickly!'}
           {canvasState === 'finished' && '⚔️ Preparing for battle...'}
         </p>
-        <p className="text-xs mt-2 text-gray-500">
-          Your character will follow this exact path during battle!
+        <p className="text-xs mt-2 text-gray-800">
+          Cheems will follow this exact path during battle!
         </p>
         {/* Debug info */}
         {canvasState === 'drawing' && (
