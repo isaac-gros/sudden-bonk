@@ -99,7 +99,7 @@ export const Game: React.FC = () => {
   const handleFightComplete = useCallback((won: boolean) => {
     // In a real game, you'd update player stats here
     console.log(won ? 'Player won!' : 'Player lost!');
-    setCurrentScreen('home');
+    setCurrentScreen('matchmaking');
   }, []);
 
   const renderCurrentScreen = () => {

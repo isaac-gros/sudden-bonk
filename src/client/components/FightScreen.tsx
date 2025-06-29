@@ -14,8 +14,8 @@ const ARENA_WIDTH = 400;
 const ARENA_HEIGHT = 400;
 const CHARACTER_SIZE = 40;
 const ATTACK_RANGE = 60;
-const ATTACK_COOLDOWN = 1200; // 1.2 seconds
-const GAME_LOOP_INTERVAL = 16; // ~60fps (16ms)
+const ATTACK_COOLDOWN = 800; // 0.8 seconds
+const GAME_LOOP_INTERVAL = 50;
 
 export const FightScreen: React.FC<FightScreenProps> = ({
   playerCharacter,
@@ -43,22 +43,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
   const [currentPlayerPosIndex, setCurrentPlayerPosIndex] = useState<number>(0); // Index in path data
   const [currentOpponentPos, setCurrentOpponentPos] = useState<DrawingPoint>({ x: 350, y: 200 });
   const [currentOpponentPosIndex, setCurrentOpponentPosIndex] = useState<number>(0);
-
-  // Generate opponent path (simple AI movement)
-  // TODO : Pass it as a props
-  // const generateOpponentPath = useCallback(async (): PathData => {
-  //   if (!opponentPathLoaded) {
-  //     const sampleIndexes = [1, 2, 3, 4];
-  //     const randomIndex = sampleIndexes[Math.floor(Math.random() * sampleIndexes.length)];
-  //     const dataPoints = await csvToDataPoints(`/data/moves/sample${randomIndex}.csv`);
-  //     const duration = 5000; // Match player path duration
-  //     setOpponentPathLoaded(true);
-    
-  //     setOpponentPath({ points: dataPoints, duration });
-  //   }
-  // }, []);
-
-  // const [opponentPath, setOpponentPath] = useState<PathData>(generateOpponentPath());
+  const [enablePlayAgain, setEnablePlayAgain] = useState<boolean>(false);
 
   // Draw paths on canvas (background only)
   const drawPaths = useCallback(() => {
@@ -85,7 +70,6 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      console.log("opponentPath ===> ", opponentPath);
       opponentPath.points.forEach((point, i) => {
         if (i === 0) ctx.moveTo(point.x, point.y);
         else ctx.lineTo(point.x, point.y);
@@ -138,14 +122,15 @@ export const FightScreen: React.FC<FightScreenProps> = ({
     if (checkCollision(currentPlayerPos, currentOpponentPos, ATTACK_RANGE)) {
       setGamePhase('finished');
       setWinner('player');
-      setTimeout(() => onFightComplete(true), 2000);
-    }
-    
-    // Reset attack animation
-    setTimeout(() => {
-      setIsPlayerAttacking(false);
       setShowAttackEffect(prev => ({ ...prev, player: false }));
-    }, 300);
+      setTimeout(() => setEnablePlayAgain(true), 3000);
+    } else {
+      // Reset attack animation
+      setTimeout(() => {
+        setIsPlayerAttacking(false);
+        setShowAttackEffect(prev => ({ ...prev, player: false }));
+      }, 300);
+    }
 
     // Reset attack cooldown
     setTimeout(() => {
@@ -161,20 +146,21 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       setIndex: Dispatch<SetStateAction<number>>,
       entityType: string
   ) => {
+    if (gamePhase == 'fighting') {
+      // If index is greater than max path data,
+      // reset it
+      if (index == pathData.points.length) {
+        setIndex(0);
+        return;
+      } else {
 
-    // If index is greater than max path data,
-    // reset it
-    if (index == pathData.points.length) {
-      setIndex(0);
-      return;
-    } else {
-
-      // Else, move the entity to next point
-      const targetPoint = pathData.points[index];
-      setPosition({
-        x: targetPoint.x,
-        y: targetPoint.y,
-      });
+        // Else, move the entity to next point
+        const targetPoint = pathData.points[index];
+        setPosition({
+          x: targetPoint.x,
+          y: targetPoint.y,
+        });
+      }
     }
   }
   const handlePlayerMove = useCallback(() => {
@@ -184,7 +170,6 @@ export const FightScreen: React.FC<FightScreenProps> = ({
 
   
   const handleOpponentMove = useCallback(() => {
-    console.log(opponentPath);
     handleEntityMove(currentOpponentPosIndex, opponentPath, setCurrentOpponentPos, setCurrentOpponentPosIndex, 'opponent')
   }, [currentOpponentPosIndex, opponentPath, setCurrentOpponentPos, setCurrentOpponentPosIndex])
   useEffect(handleOpponentMove, [currentOpponentPosIndex, handleOpponentMove]);
@@ -203,31 +188,36 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       if (checkCollision(currentPlayerPos, currentOpponentPos, ATTACK_RANGE)) {
         setGamePhase('finished');
         setWinner('opponent');
-        setTimeout(() => onFightComplete(false), 2000);
+        setShowAttackEffect(prev => ({ ...prev, opponent: false }));
+        setTimeout(() => setEnablePlayAgain(true), 3000);
+      } else {
+        // Reset attack animation
+        setTimeout(() => {
+          setIsOpponentAttacking(false);
+          setShowAttackEffect(prev => ({ ...prev, opponent: false }));
+        }, 300);
       }
       
-      // Reset attack animation
-      setTimeout(() => {
-        setIsOpponentAttacking(false);
-        setShowAttackEffect(prev => ({ ...prev, opponent: false }));
-      }, 300);
     }
   }, [opponentAttackCooldown, currentPlayerPos, currentOpponentPos, checkCollision, onFightComplete]);
 
   // Game loop using setInterval
   const gameLoop = useCallback(() => {
-    if (gamePhase !== 'fighting') return;
     
-    setCurrentPlayerPosIndex(currentPlayerPosIndex + 1)
-    setCurrentOpponentPosIndex(currentOpponentPosIndex + 1);
+    if (gamePhase == 'fighting') {
+      setCurrentPlayerPosIndex(currentPlayerPosIndex + 1)
+      setCurrentOpponentPosIndex(currentOpponentPosIndex + 1);
     
-    // Update cooldowns
-    setPlayerAttackCooldown(prev => Math.max(0, prev - GAME_LOOP_INTERVAL));
-    setOpponentAttackCooldown(prev => Math.max(0, prev - GAME_LOOP_INTERVAL));
-    
-    // AI attack logic
-    if (Math.random() < 0.02) { // 2% chance per frame
-      handleOpponentAttack();
+      // Update cooldowns
+      setPlayerAttackCooldown(prev => Math.max(0, prev - GAME_LOOP_INTERVAL));
+      setOpponentAttackCooldown(prev => Math.max(0, prev - GAME_LOOP_INTERVAL));
+
+      // AI attack logic
+      if (Math.random() < 0.1) { // 10% chance per frame
+        handleOpponentAttack();
+      }
+    } else {
+      console.log('Not fighting');
     }
   }, [gamePhase,currentPlayerPosIndex, playerPath, opponentPath, getPositionAtTime, handleOpponentAttack]);
 
@@ -249,6 +239,15 @@ export const FightScreen: React.FC<FightScreenProps> = ({
 
   // Start game loop when fighting begins
   useEffect(() => {
+
+    if (winner !== null) {
+      setGamePhase('finished');
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+    }
+
     if (gamePhase === 'fighting') {
       gameLoopRef.current = setInterval(gameLoop, GAME_LOOP_INTERVAL);
     } else {
@@ -288,9 +287,9 @@ export const FightScreen: React.FC<FightScreenProps> = ({
   }, [playerPath]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-900 via-orange-900 to-black flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen main-background flex flex-col items-center justify-center p-4">
       <div className="text-center mb-4">
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
           {gamePhase === 'countdown' && `FIGHT STARTS IN ${countdown}`}
           {gamePhase === 'fighting' && 'SUDDEN DEATH BATTLE'}
           {gamePhase === 'finished' && (winner === 'player' ? 'VICTORY!' : 'DEFEAT!')}
@@ -307,7 +306,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
           ref={pathCanvasRef}
           width={ARENA_WIDTH}
           height={ARENA_HEIGHT}
-          className="absolute top-0 left-0 border-4 border-gray-600 rounded-lg bg-gray-800"
+          className="absolute top-0 left-0 right-0 w-full border-4 border-gray-600 rounded-lg bg-gray-800"
         />
         
         {/* Arena container for characters */}
@@ -332,15 +331,13 @@ export const FightScreen: React.FC<FightScreenProps> = ({
           >
             {/* Character Body */}
             <div className="relative text-center">
-              <div className="text-2xl">🥷</div>
-              {/* Hat */}
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 text-lg">
-                {playerCharacter.hat}
-              </div>
-              {/* Weapon */}
-              <div className="absolute -bottom-1 -right-1 text-sm">
-                {playerCharacter.weapon}
-              </div>
+              {/* CHEEMS */}
+              <img className='sprite debug border-green-500' src="/assets/sprites/cheemx64.png"></img>
+              {/* BAT */}
+              <img src="/assets/sprites/bat.png" 
+                className={`sprite bat debug absolute top-0 transition-all ${
+                  isPlayerAttacking ? 'bat-swing' : ''
+                }`}></img>
               {/* Player Label */}
               <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs text-blue-400 font-bold whitespace-nowrap">
                 YOU
@@ -368,15 +365,13 @@ export const FightScreen: React.FC<FightScreenProps> = ({
           >
             {/* Character Body */}
             <div className="relative text-center">
-              <div className="text-2xl">🥷</div>
-              {/* Hat */}
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 text-lg">
-                {opponentCharacter.hat}
-              </div>
-              {/* Weapon */}
-              <div className="absolute -bottom-1 -right-1 text-sm">
-                {opponentCharacter.weapon}
-              </div>
+              {/* CHEEMS */}
+              <img className='sprite' src="/assets/sprites/cheemx64_opponent.png"></img>
+              {/* BAT */}
+              <img src="/assets/sprites/bat_opponent.png" 
+                className={`sprite bat debug absolute top-0 transition-all ${
+                  isOpponentAttacking ? 'bat-swing--opponent' : ''
+                }`}></img>
               {/* Opponent Label */}
               <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs text-red-400 font-bold whitespace-nowrap">
                 ENEMY
@@ -400,7 +395,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
       </div>
 
       {/* Attack Buttons */}
-      {gamePhase === 'fighting' && (
+      {(gamePhase === 'fighting' && winner === null) && (
         <div className="flex items-center justify-between">
           <button
             onClick={handlePlayerAttack}
@@ -416,34 +411,25 @@ export const FightScreen: React.FC<FightScreenProps> = ({
               : 'ATTACK ⚔️'
             }
           </button>
-          <button
-            onClick={() => setCurrentPlayerPosIndex(currentPlayerPosIndex + 1)}
-            className="
-              px-8 py-4 rounded-lg font-bold text-xl 
-              transition-all duration-200 bg-blue-600 hover:bg-blue-500 text-white 
-              transform hover:scale-105 active:scale-95">
-            MOVE ⏩
-          </button>
         </div>
       )}
 
       {/* Game Instructions */}
-      <div className="text-center text-gray-400 text-sm mt-4">
-        {gamePhase === 'countdown' && <p>Get ready! Your character will follow the path you drew.</p>}
+      <div className="text-center text-sm mt-4">
+        {gamePhase === 'countdown' && <p>Get ready! Cheems will follow the path you drew.</p>}
         {gamePhase === 'fighting' && <p>Time your attack perfectly! Characters loop their paths until someone hits!</p>}
         {gamePhase === 'finished' && (
-          <p>{winner === 'player' ? 'Perfect timing!' : 'Better luck next time!'}</p>
+          <p>{winner === 'player' ? 'You won!' : 'Go to horny jail!'}</p>
         )}
       </div>
 
-      {/* Debug Info */}
-      {gamePhase === 'fighting' && (
-        <div className="text-xs text-gray-500 mt-2">
-          <p>Player Path Points: {playerPath.points.length}</p>
-          <p>Player Path Duration: {playerPath.duration}ms</p>
-          <p>Current Position: ({Math.round(currentPlayerPos.x)}, {Math.round(currentPlayerPos.y)})</p>
-          <p>Elapsed Time: {startTimeRef.current ? Date.now() - startTimeRef.current : 0}ms</p>
-          <p>Loop Progress: {startTimeRef.current ? Math.round(((Date.now() - startTimeRef.current) % Math.max(playerPath.duration, 5000)) / Math.max(playerPath.duration, 5000) * 100) : 0}%</p>
+      {(winner !== null && enablePlayAgain) && (
+        <div className="flex items-center justify-between">
+          <button
+            className='ui-btn'
+            onClick={() => onFightComplete(winner == 'player')}>
+            Play again ?  
+          </button>
         </div>
       )}
     </div>
