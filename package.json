@@ -5,7 +5,7 @@
   "license": "BSD-3-Clause",
   "type": "module",
   "scripts": {
-    "build:client": "cd src/client && vite build",
+    "build": "cd src/client && vite build",
     "check": "npm run type-check && npm run lint:fix && npm run prettier",
     "devvit:init": "devvit upload --copy-paste && touch .initialized",
     "deploy": "npm run build:client && devvit upload --copy-paste",
