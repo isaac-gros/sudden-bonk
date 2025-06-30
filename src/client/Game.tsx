@@ -6,6 +6,7 @@ import { LeaderboardScreen } from './components/LeaderboardScreen';
 import { MakeMoveScreen } from './components/MakeMoveScreen';
 import { FightScreen } from './components/FightScreen';
 import { Screen, Character, Player, PathData } from '../shared/types/game';
+import { BoltBadge } from './components/BoltBadge';
 
 const MOCK_PLAYERS: Player[] = [
   {
@@ -106,27 +107,33 @@ export const Game: React.FC = () => {
     switch (currentScreen) {
       case 'home':
         return (
-          <HomeScreen
-            onNavigate={(screen) => {
-              if (screen === 'character-editor') {
-                navigateToScreen('character-editor');
-              } else if (screen === 'matchmaking') {
-                navigateToScreen('matchmaking');
-              } else if (screen === 'leaderboard') {
-                navigateToScreen('leaderboard');
-              }
-            }}
-          />
+          <>
+            <BoltBadge/>
+            <HomeScreen
+              onNavigate={(screen) => {
+                if (screen === 'character-editor') {
+                  navigateToScreen('character-editor');
+                } else if (screen === 'matchmaking') {
+                  navigateToScreen('matchmaking');
+                } else if (screen === 'leaderboard') {
+                  navigateToScreen('leaderboard');
+                }
+              }}
+            />
+          </>
         );
 
       case 'character-editor':
         return (
-          <CharacterEditor
-            character={playerCharacter}
-            onCharacterUpdate={handleCharacterUpdate}
-            onJoinMatchmaking={handleJoinMatchmaking}
-            onBack={() => navigateToScreen('home')}
-          />
+          <>
+            <BoltBadge/>
+            <CharacterEditor
+              character={playerCharacter}
+              onCharacterUpdate={handleCharacterUpdate}
+              onJoinMatchmaking={handleJoinMatchmaking}
+              onBack={() => navigateToScreen('home')}
+            />
+          </>
         );
 
       case 'matchmaking':
