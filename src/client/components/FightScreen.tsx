@@ -332,10 +332,10 @@ export const FightScreen: React.FC<FightScreenProps> = ({
             {/* Character Body */}
             <div className="relative text-center">
               {/* CHEEMS */}
-              <img className='sprite debug border-green-500' src="/assets/sprites/cheemx64.png"></img>
+              <img className='sprite border-green-500' src="/assets/sprites/cheemx64.png"></img>
               {/* BAT */}
               <img src="/assets/sprites/bat.png" 
-                className={`sprite bat debug absolute top-0 transition-all ${
+                className={`sprite bat absolute top-0 transition-all ${
                   isPlayerAttacking ? 'bat-swing' : ''
                 }`}></img>
               {/* Player Label */}
@@ -369,7 +369,7 @@ export const FightScreen: React.FC<FightScreenProps> = ({
               <img className='sprite' src="/assets/sprites/cheemx64_opponent.png"></img>
               {/* BAT */}
               <img src="/assets/sprites/bat_opponent.png" 
-                className={`sprite bat debug absolute top-0 transition-all ${
+                className={`sprite bat absolute top-0 transition-all ${
                   isOpponentAttacking ? 'bat-swing--opponent' : ''
                 }`}></img>
               {/* Opponent Label */}

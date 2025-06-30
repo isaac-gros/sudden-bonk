@@ -6,7 +6,7 @@ import { defineConfig } from '@devvit/server';
 import { postConfigNew } from '../server/core/post';
 
 defineConfig({
-  name: '[Bolt] Word Guesser',
+  name: '[Bolt] sudden bonk!',
   entry: 'index.html',
   height: 'tall',
   menu: { enable: false },
@@ -43,7 +43,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
 // TODO: Remove this when defineConfig allows webhooks before post creation
 Devvit.addMenuItem({
   // Please update as you work on your idea!
-  label: '[Bolt Word Guesser]: New Post',
+  label: '[Bolt sudden bonk!]: New Post',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (_event, context) => {
@@ -54,7 +54,7 @@ Devvit.addMenuItem({
       const subreddit = await reddit.getCurrentSubreddit();
       post = await reddit.submitPost({
         // Title of the post. You'll want to update!
-        title: 'Word Guesser',
+        title: 'sudden bonk!',
         subredditName: subreddit.name,
         preview: <Preview />,
       });
