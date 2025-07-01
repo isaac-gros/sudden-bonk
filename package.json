@@ -9,6 +9,7 @@
     "check": "npm run type-check && npm run lint:fix && npm run prettier",
     "devvit:init": "devvit upload --copy-paste && touch .initialized",
     "build": "npm run build:client && devvit upload --copy-paste",
+    "devvit:build:": "devvit upload --copy-paste",
     "dev": "node setup-devvit.cjs",
     "dev:all": "concurrently -p \"[{name}]\" -n \"VITE,DEVVIT,GAME\" -c \"blue,green,magenta\" \"npm run dev:vite\" \"npm run dev:devvit\" \"npm run dev:client\" --restart-tries 2",
     "dev:client": "cd src/client && vite build --watch",
