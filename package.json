@@ -27,7 +27,7 @@
     "@devvit/redis": "0.11.16",
     "@tweenjs/tween.js": "18.6.4",
     "clsx": "2.1.1",
-    "devvit": "0.11.17",
+    "devvit": "0.11.18",
     "express": "5.1.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
